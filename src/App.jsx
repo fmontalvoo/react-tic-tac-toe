@@ -1,20 +1,43 @@
 import { Component, Fragment } from 'react';
 
-class Square extends Component {
 
-    handleOnSquareClick = (evt) => {
+function calculateWinner(squares) {
+    // Almacena las posiciones en el tablero para declarar al ganador.
+    const lines = [
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [0, 3, 6],
+        [1, 4, 7],
+        [2, 5, 8],
+        [0, 4, 8],
+        [2, 4, 6],
+    ];
+    for (let i = 0; i < lines.length; i++) {
+        const [a, b, c] = lines[i];
+        // Verifica que la primer posicion no sea nula. Luego verifica si el resto
+        // de posiciones estan ocupadas por el mismo juagor.
+        if (squares[a] && squares[a] === squares[b] && squares[b] === squares[c]) {
+            return squares[a]; // Devuelve 'X' o 'O' dependiendo el jugador que gane.
+        }
+    }
+    return null;
+}
+
+/***********************************************************************************************/
+
+function Square(props) {
+    const handleOnSquareClick = (evt) => {
         // Retorna el indice del boton a la funcion handleClick del padre.
-        this.props.onSquareClick(evt.target.value);
+        props.onSquareClick(evt.target.value);
     }
 
-    render() {
-        return (
-            <button className="square"
-                onClick={this.handleOnSquareClick} >
-                {this.props.value}
-            </button>
-        );
-    }
+    return (
+        <button className="square"
+            onClick={handleOnSquareClick} >
+            {props.value}
+        </button>
+    );
 }
 
 class Board extends Component {
@@ -24,9 +47,8 @@ class Board extends Component {
 
         this.state = {
             squares: Array(9).fill(null), // Crear un arreglo con 9 valores nulos.
+            xIsnext: true, // Comprueba el turno del jugador.
         }
-
-        this.currentPlayer = '';
     }
 
     renderSquare(i) {
@@ -38,19 +60,24 @@ class Board extends Component {
     handleClick(index) {
         const squares = [...this.state.squares]; // Crea una copia del arreglo.
 
-        if (this.currentPlayer === 'X')
-            this.currentPlayer = 'O';
-        else
-            this.currentPlayer = 'X';
+        // Previene de marcar una casilla si un jugador ya gano.
+        // Tambien impide sobreescribir una casilla ocupada.
+        if (calculateWinner(squares) || squares[index]) return;
 
-        squares[index] = this.currentPlayer;
-        this.setState({ squares: squares });
+        squares[index] = this.state.xIsnext ? 'X' : 'O';
+        this.setState({ squares: squares, xIsnext: !this.state.xIsnext });
     }
 
     render() {
+        const winner = calculateWinner(this.state.squares);
+        let status;
+        if (winner)
+            status = `Gano: ${winner}`;
+        else
+            status = `Siguiente turno: ${this.state.xIsnext ? 'X' : 'O'}`;
         return (
             <div>
-                <div className="status">{`Jugador: ${this.currentPlayer}`}</div>
+                <div className="status">{status}</div>
                 <div className="board-row">
                     {this.renderSquare(0)}
                     {this.renderSquare(1)}
