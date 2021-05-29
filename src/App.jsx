@@ -41,43 +41,16 @@ function Square(props) {
 }
 
 class Board extends Component {
-
-    constructor(props) {
-        super(props);
-
-        this.state = {
-            squares: Array(9).fill(null), // Crear un arreglo con 9 valores nulos.
-            xIsnext: true, // Comprueba el turno del jugador.
-        }
-    }
-
     renderSquare(i) {
         return <Square
-            value={this.state.squares[i]}
-            onSquareClick={() => this.handleClick(i)} />;
-    }
-
-    handleClick(index) {
-        const squares = [...this.state.squares]; // Crea una copia del arreglo.
-
-        // Previene de marcar una casilla si un jugador ya gano.
-        // Tambien impide sobreescribir una casilla ocupada.
-        if (calculateWinner(squares) || squares[index]) return;
-
-        squares[index] = this.state.xIsnext ? 'X' : 'O';
-        this.setState({ squares: squares, xIsnext: !this.state.xIsnext });
+            value={this.props.squares[i]}
+            onSquareClick={() => this.props.onSquareClick(i)} />;
     }
 
     render() {
-        const winner = calculateWinner(this.state.squares);
-        let status;
-        if (winner)
-            status = `Gano: ${winner}`;
-        else
-            status = `Siguiente turno: ${this.state.xIsnext ? 'X' : 'O'}`;
+
         return (
             <div>
-                <div className="status">{status}</div>
                 <div className="board-row">
                     {this.renderSquare(0)}
                     {this.renderSquare(1)}
@@ -99,15 +72,72 @@ class Board extends Component {
 }
 
 class Game extends Component {
+
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            history: [{
+                squares: Array(9).fill(null), // Crear un arreglo con 9 valores nulos.
+            }],
+            xIsnext: true, // Comprueba el turno del jugador.
+            stepNumber: 0, // Indica la jugada actual que es visible.
+        };
+    }
+
+    handleClick = (index) => {
+        const history = this.state.history.slice(0, this.state.stepNumber + 1);
+        const current = history[history.length - 1];
+        const squares = [...current.squares]; // Crea una copia del arreglo.
+
+        // Previene de marcar una casilla si un jugador ya gano.
+        // Tambien impide sobreescribir una casilla ocupada.
+        if (calculateWinner(squares) || squares[index]) return;
+
+        squares[index] = this.state.xIsnext ? 'X' : 'O';
+        this.setState({
+            history: history.concat({ squares: squares }), // Concatena el nuevo arreglo de squares.
+            stepNumber: history.length,
+            xIsnext: !this.state.xIsnext
+        });
+    }
+
+    jumpToMove(index) {
+        this.setState({ stepNumber: index, xIsnext: ((index % 2) === 0) });
+    }
+
     render() {
+        const history = this.state.history;
+        const current = history[this.state.stepNumber];
+        const winner = calculateWinner(current.squares);
+
+        let status;
+        if (winner)
+            status = `Gano: ${winner}`;
+        else
+            status = `Siguiente turno: ${this.state.xIsnext ? 'X' : 'O'}`;
+
+        const moves = history.map((_, step) => {
+            const desc = step
+                ? `Regresar al movimiento #${step}`
+                : 'Reiniciar';
+            return (
+                <li key={step}>
+                    <button onClick={() => this.jumpToMove(step)}>{desc}</button>
+                </li>
+            );
+        });
+
         return (
             <div className="game">
                 <div className="game-board">
-                    <Board />
+                    <Board
+                        squares={current.squares}
+                        onSquareClick={this.handleClick} />
                 </div>
                 <div className="game-info">
-                    <div>{/* status */}</div>
-                    <ol>{/* TODO */}</ol>
+                    <div>{status}</div>
+                    <ol>{moves}</ol>
                 </div>
             </div>
         );
